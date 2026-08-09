@@ -16,8 +16,11 @@ const upload = multer({
 });
 
 function publicUrl(key) {
-  const base = process.env.STORAGE_PUBLIC_URL || process.env.STORAGE_ENDPOINT;
-  return `${base}/${BUCKET}/${key}`;
+  if (process.env.STORAGE_PUBLIC_URL) {
+    return `${process.env.STORAGE_PUBLIC_URL}/${key}`;
+  }
+  const endpoint = process.env.STORAGE_ENDPOINT.replace("https://", "");
+  return `https://${BUCKET}.${endpoint}/${key}`;
 }
 
 async function uploadFile(file, folder) {
@@ -52,8 +55,8 @@ router.post(
         return res.status(400).json({ message: "عنوان، خواننده، فایل صوتی و کاور الزامی است" });
       }
 
-      const audioResult = await uploadFile(audioFile, "hbc-remix/audio");
-      const coverResult = await uploadFile(coverFile, "hbc-remix/covers");
+      const audioResult = await uploadFile(audioFile, "audio");
+      const coverResult = await uploadFile(coverFile, "covers");
 
       const song = await Song.create({
         title,
