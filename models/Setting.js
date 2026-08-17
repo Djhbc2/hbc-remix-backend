@@ -1,22 +1,11 @@
-const express = require("express");
-const Setting = require("../models/Setting");
-const { adminOnly } = require("../middleware/auth");
+const mongoose = require("mongoose");
 
-const router = express.Router();
+const settingSchema = new mongoose.Schema(
+  {
+    key: { type: String, required: true, unique: true },
+    value: { type: String, default: "" },
+  },
+  { timestamps: true }
+);
 
-router.get("/about", async (req, res) => {
-  const setting = await Setting.findOne({ key: "about" });
-  res.json({ text: setting?.value || "" });
-});
-
-router.put("/about", adminOnly, async (req, res) => {
-  const { text } = req.body;
-  const setting = await Setting.findOneAndUpdate(
-    { key: "about" },
-    { value: text || "" },
-    { upsert: true, new: true }
-  );
-  res.json({ text: setting.value });
-});
-
-module.exports = router;
+module.exports = mongoose.model("Setting", settingSchema);
