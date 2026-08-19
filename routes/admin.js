@@ -7,6 +7,7 @@ const Song = require("../models/Song");
 const Comment = require("../models/Comment");
 const User = require("../models/User");
 const { adminOnly } = require("../middleware/auth");
+const { notifyAll } = require("../config/webpush");
 
 const router = express.Router();
 
@@ -70,6 +71,14 @@ router.post(
         src: audioResult.url,
         audioPublicId: audioResult.key,
       });
+
+      // ارسال نوتیفیکیشن به همه (بدون معطل کردن پاسخ آپلود)
+      notifyAll({
+        title: "🎵 آهنگ جدید تو HBC REMIX",
+        body: `${song.title} - ${song.artist}`,
+        icon: "logo.png",
+        songId: song._id.toString(),
+      }).catch(() => {});
 
       res.status(201).json(song);
     } catch (err) {
