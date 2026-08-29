@@ -87,6 +87,24 @@ router.post(
   }
 );
 
+// ویرایش عنوان، خواننده و مدت‌زمان یک آهنگ
+router.put("/songs/:id", adminOnly, async (req, res) => {
+  try {
+    const { title, artist, time } = req.body;
+    const song = await Song.findById(req.params.id);
+    if (!song) return res.status(404).json({ message: "آهنگ یافت نشد" });
+
+    if (title && title.trim()) song.title = title.trim();
+    if (artist && artist.trim()) song.artist = artist.trim();
+    if (time && time.trim()) song.time = time.trim();
+
+    await song.save();
+    res.json(song);
+  } catch (err) {
+    res.status(500).json({ message: "خطا در ویرایش آهنگ", error: err.message });
+  }
+});
+
 // حذف آهنگ
 router.delete("/songs/:id", adminOnly, async (req, res) => {
   try {
