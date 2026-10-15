@@ -26,6 +26,12 @@ router.get("/top/chart", async (req, res) => {
   res.json(songs);
 });
 
+// ریمیکس هفته (آخرین آهنگی که ادمین ویژه کرده)
+router.get("/featured/current", async (req, res) => {
+  const song = await Song.findOne({ featured: true }).sort({ updatedAt: -1 });
+  res.json(song || null);
+});
+
 // دریافت یک آهنگ
 router.get("/:id", async (req, res) => {
   const song = await Song.findById(req.params.id);

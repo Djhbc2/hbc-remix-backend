@@ -10,6 +10,14 @@ router.get("/mine", protect, async (req, res) => {
   res.json(user.savedSongs);
 });
 
+// پلی‌لیست عمومی یک کاربر (برای اشتراک‌گذاری با لینک). فقط اسم و آهنگ‌ها نشون داده می‌شه
+router.get("/public/:userId", async (req, res) => {
+  if (!/^[0-9a-fA-F]{24}$/.test(req.params.userId)) return res.status(404).json({ message: "پلی‌لیست یافت نشد" });
+  const user = await User.findById(req.params.userId).populate("savedSongs");
+  if (!user) return res.status(404).json({ message: "پلی‌لیست یافت نشد" });
+  res.json({ name: user.name, songs: user.savedSongs.filter(Boolean) });
+});
+
 router.post("/:songId", protect, async (req, res) => {
   if (req.isAdmin) {
     return res.status(403).json({ message: "پنل مدیریت پلی‌لیست شخصی ندارد" });

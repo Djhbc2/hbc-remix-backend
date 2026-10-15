@@ -14,23 +14,34 @@ router.get("/:songId", async (req, res) => {
       text: c.text,
       createdAt: c.createdAt,
       likeCount: c.likes.length,
+      parent: c.parent || null,
+      isDj: !!c.isDj,
     }))
   );
 });
 
 // ثبت نظر جدید (نیاز به لاگین)
 router.post("/:songId", protect, async (req, res) => {
-  if (req.isAdmin) {
-    return res.status(403).json({ message: "برای ثبت نظر باید با حساب کاربری وارد شوید" });
-  }
-  const { text } = req.body;
+  const { text, parent } = req.body;
   if (!text || !text.trim()) {
     return res.status(400).json({ message: "متن نظر خالی است" });
   }
+  // مدیر سایت فقط می‌تونه «پاسخ» بده و با اسم DJ HBC (با نشان تأییدشده) نمایش داده می‌شه
+  if (req.isAdmin && !parent) {
+    return res.status(403).json({ message: "مدیر فقط می‌تونه به نظرها پاسخ بده" });
+  }
+  let parentId = null;
+  if (parent) {
+    const p = await Comment.findOne({ _id: parent, song: req.params.songId });
+    if (!p) return res.status(404).json({ message: "نظر اصلی یافت نشد" });
+    parentId = p.parent || p._id; // پاسخ به پاسخ هم زیر نظر اصلی میاد
+  }
   const comment = await Comment.create({
     song: req.params.songId,
-    user: req.user._id,
-    name: req.user.name,
+    user: req.isAdmin ? undefined : req.user._id,
+    name: req.isAdmin ? "DJ HBC" : req.user.name,
+    isDj: !!req.isAdmin,
+    parent: parentId,
     text: text.trim(),
   });
   res.status(201).json({
@@ -39,6 +50,8 @@ router.post("/:songId", protect, async (req, res) => {
     text: comment.text,
     createdAt: comment.createdAt,
     likeCount: 0,
+    parent: comment.parent,
+    isDj: comment.isDj,
   });
 });
 

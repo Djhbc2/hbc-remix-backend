@@ -6,6 +6,7 @@ const { s3, BUCKET } = require("../config/storage");
 const Song = require("../models/Song");
 const Comment = require("../models/Comment");
 const User = require("../models/User");
+const Request = require("../models/Request");
 const { adminOnly } = require("../middleware/auth");
 const { notifyAll } = require("../config/webpush");
 
@@ -105,6 +106,52 @@ router.put("/songs/:id", adminOnly, async (req, res) => {
   }
 });
 
+// ویرایش ست‌لیست و ریمیکس هفته
+// tracklist: متن چندخطی؛ هر خط «دقیقه:ثانیه اسم آهنگ» مثل  12:30 Moon Remix
+function parseTracklist(text) {
+  const out = [];
+  for (const raw of String(text || "").split(/\r?\n/)) {
+    const m = raw.trim().match(/^(?:(\d+):)?(\d{1,2}):(\d{2})\s+(.+)$/);
+    if (!m) continue;
+    const t = (m[1] ? +m[1] * 3600 : 0) + +m[2] * 60 + +m[3];
+    out.push({ t, title: m[4].trim() });
+  }
+  return out.sort((a, b) => a.t - b.t).slice(0, 200);
+}
+
+router.put("/songs/:id/meta", adminOnly, async (req, res) => {
+  try {
+    const song = await Song.findById(req.params.id);
+    if (!song) return res.status(404).json({ message: "آهنگ یافت نشد" });
+    if (typeof req.body.tracklist === "string") song.tracklist = parseTracklist(req.body.tracklist);
+    if (typeof req.body.featured === "boolean") {
+      if (req.body.featured) await Song.updateMany({ _id: { $ne: song._id }, featured: true }, { featured: false });
+      song.featured = req.body.featured;
+    }
+    await song.save();
+    res.json(song);
+  } catch (err) {
+    res.status(500).json({ message: "خطا در ذخیره", error: err.message });
+  }
+});
+
+// درخواست‌های ریمیکس کاربرها
+router.get("/requests", adminOnly, async (req, res) => {
+  const list = await Request.find().sort({ done: 1, createdAt: -1 }).limit(200);
+  res.json(list);
+});
+
+router.put("/requests/:id", adminOnly, async (req, res) => {
+  const r = await Request.findByIdAndUpdate(req.params.id, { done: !!req.body.done }, { new: true });
+  if (!r) return res.status(404).json({ message: "درخواست یافت نشد" });
+  res.json(r);
+});
+
+router.delete("/requests/:id", adminOnly, async (req, res) => {
+  await Request.findByIdAndDelete(req.params.id);
+  res.json({ message: "حذف شد" });
+});
+
 // حذف آهنگ
 router.delete("/songs/:id", adminOnly, async (req, res) => {
   try {
@@ -135,6 +182,9 @@ router.get("/comments", adminOnly, async (req, res) => {
       _id: c._id,
       name: c.name,
       text: c.text,
+      isDj: !!c.isDj,
+      songId: c.song?._id || null,
+      parent: c.parent || null,
       songTitle: c.song?.title || "آهنگ حذف‌شده",
       createdAt: c.createdAt,
     }))
@@ -156,6 +206,7 @@ router.put("/comments/:id", adminOnly, async (req, res) => {
 router.delete("/comments/:id", adminOnly, async (req, res) => {
   const comment = await Comment.findByIdAndDelete(req.params.id);
   if (!comment) return res.status(404).json({ message: "نظر یافت نشد" });
+  await Comment.deleteMany({ parent: comment._id });
   res.json({ message: "نظر حذف شد" });
 });
 
