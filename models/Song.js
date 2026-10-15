@@ -13,6 +13,9 @@ const songSchema = new mongoose.Schema(
     plays: { type: Number, default: 0 },
     ratingSum: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 },
+    // فهرست زمان‌دار برای ست‌ها/میکس‌های طولانی: [{ t: ثانیه, title: "اسم آهنگ" }]
+    tracklist: [{ _id: false, t: { type: Number, required: true }, title: { type: String, required: true, trim: true } }],
+    featured: { type: Boolean, default: false }, // ریمیکس هفته
   },
   { timestamps: true }
 );
