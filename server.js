@@ -9,6 +9,8 @@ const commentRoutes = require("./routes/comments");
 const playlistRoutes = require("./routes/playlist");
 const adminRoutes = require("./routes/admin");
 const settingsRoutes = require("./routes/settings");
+const requestsRoutes = require("./routes/requests");
+const shareRoutes = require("./routes/share");
 
 const app = express();
 
@@ -29,6 +31,8 @@ app.use("/api/comments", commentRoutes);
 app.use("/api/playlist", playlistRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/requests", requestsRoutes);
+app.use("/s", shareRoutes);
 
 // هندلر خطای عمومی
 app.use((err, req, res, next) => {
